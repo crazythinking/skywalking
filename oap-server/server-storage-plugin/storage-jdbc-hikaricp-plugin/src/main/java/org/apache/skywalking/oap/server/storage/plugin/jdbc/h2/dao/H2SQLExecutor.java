@@ -46,7 +46,7 @@ public class H2SQLExecutor {
     private static final Logger logger = LoggerFactory.getLogger(H2SQLExecutor.class);
 
     protected List<StorageData> getByIDs(JDBCHikariCPClient h2Client, String modelName, String[] ids,
-        StorageBuilder storageBuilder) throws IOException {
+        StorageBuilder<StorageData> storageBuilder) throws IOException {
 
         try (Connection connection = h2Client.getConnection()) {
             /*
@@ -74,7 +74,7 @@ public class H2SQLExecutor {
     }
 
     protected StorageData getByID(JDBCHikariCPClient h2Client, String modelName, String id,
-        StorageBuilder storageBuilder) throws IOException {
+        StorageBuilder<StorageData> storageBuilder) throws IOException {
         try (Connection connection = h2Client.getConnection()) {
             try (ResultSet rs = h2Client.executeQuery(connection, "SELECT * FROM " + modelName + " WHERE id = ?", id)) {
                 return toStorageData(rs, modelName, storageBuilder);
@@ -85,7 +85,7 @@ public class H2SQLExecutor {
     }
 
     protected StorageData getByColumn(JDBCHikariCPClient h2Client, String modelName, String columnName, Object value,
-        StorageBuilder storageBuilder) throws IOException {
+        StorageBuilder<StorageData> storageBuilder) throws IOException {
         try (Connection connection = h2Client.getConnection()) {
             try (ResultSet rs = h2Client.executeQuery(connection, "SELECT * FROM " + modelName + " WHERE " + columnName + " = ?", value)) {
                 return toStorageData(rs, modelName, storageBuilder);
@@ -96,9 +96,9 @@ public class H2SQLExecutor {
     }
 
     protected StorageData toStorageData(ResultSet rs, String modelName,
-        StorageBuilder storageBuilder) throws SQLException {
+        StorageBuilder<StorageData> storageBuilder) throws SQLException {
         if (rs.next()) {
-            Map data = new HashMap();
+            Map<String, Object> data = new HashMap<>();
             List<ModelColumn> columns = TableMetaInfo.get(modelName).getColumns();
             for (ModelColumn column : columns) {
                 data.put(column.getColumnName().getName(), rs.getObject(column.getColumnName().getStorageName()));
@@ -111,7 +111,7 @@ public class H2SQLExecutor {
     protected int getEntityIDByID(JDBCHikariCPClient h2Client, String entityColumnName, String modelName, String id) {
         try (Connection connection = h2Client.getConnection()) {
             try (ResultSet rs = h2Client.executeQuery(connection, "SELECT " + entityColumnName + " FROM " + modelName + " WHERE ID=?", id)) {
-                while (rs.next()) {
+                if (rs.next()) {
                     return rs.getInt(ServiceInstanceInventory.SEQUENCE);
                 }
             }
@@ -122,7 +122,7 @@ public class H2SQLExecutor {
     }
 
     protected SQLExecutor getInsertExecutor(String modelName, StorageData metrics,
-        StorageBuilder storageBuilder) throws IOException {
+        StorageBuilder<StorageData> storageBuilder) throws IOException {
         Map<String, Object> objectMap = storageBuilder.data2Map(metrics);
 
         SQLBuilder sqlBuilder = new SQLBuilder("INSERT INTO " + modelName + " VALUES");
@@ -150,7 +150,7 @@ public class H2SQLExecutor {
     }
 
     protected SQLExecutor getUpdateExecutor(String modelName, StorageData metrics,
-        StorageBuilder storageBuilder) throws IOException {
+        StorageBuilder<StorageData> storageBuilder) throws IOException {
         Map<String, Object> objectMap = storageBuilder.data2Map(metrics);
 
         SQLBuilder sqlBuilder = new SQLBuilder("UPDATE " + modelName + " SET ");
